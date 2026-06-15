@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Figma → Canva Bridge (editable .pptx)</title>
+<!-- PptxGenJS builds the editable PowerPoint entirely in your browser -->
+<script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#181b22; --panel2:#20242e; --line:#2c313c;
+    --text:#e6e9ef; --muted:#9aa3b2; --accent:#7c5cff; --accent2:#1ed7b5;
+    --warn:#ffb23e; --err:#ff5d6c; --ok:#1ed7b5;
+    --radius:12px; font-size:15px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font-family:'Inter',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;line-height:1.5}
+  header{padding:22px 28px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:14px}
+  header h1{font-size:18px;margin:0;font-weight:650;letter-spacing:.2px}
+  header .badge{font-size:11px;color:var(--muted);border:1px solid var(--line);
+    padding:3px 9px;border-radius:999px}
+  .wrap{max-width:980px;margin:0 auto;padding:28px}
+  .step{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:22px 24px;margin-bottom:20px}
+  .step h2{font-size:14px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);
+    margin:0 0 14px;display:flex;align-items:center;gap:10px}
+  .step h2 .n{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;
+    background:var(--accent);color:#fff;border-radius:50%;font-size:12px;font-weight:700}
+  label{display:block;font-size:13px;color:var(--muted);margin:12px 0 6px}
+  input[type=text],textarea{width:100%;background:var(--panel2);border:1px solid var(--line);
+    color:var(--text);border-radius:8px;padding:10px 12px;font-size:14px;font-family:inherit}
+  textarea{min-height:96px;resize:vertical;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px}
+  .row{display:flex;gap:12px;flex-wrap:wrap}
+  .row>*{flex:1;min-width:220px}
+  button{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:10px 16px;
+    font-size:14px;font-weight:600;cursor:pointer;transition:.15s}
+  button:hover{filter:brightness(1.08)}
+  button.secondary{background:var(--panel2);border:1px solid var(--line);color:var(--text)}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  .cmd{background:#0a0c10;border:1px solid var(--line);border-radius:8px;padding:12px 14px;
+    font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;white-space:pre-wrap;
+    word-break:break-all;position:relative;color:#cfd6e4}
+  .cmd button{position:absolute;top:8px;right:8px;padding:4px 10px;font-size:12px}
+  .drop{border:2px dashed var(--line);border-radius:10px;padding:26px;text-align:center;
+    color:var(--muted);cursor:pointer;transition:.15s;background:var(--panel2)}
+  .drop.hover{border-color:var(--accent);color:var(--text);background:#22263180}
+  .hint{font-size:12.5px;color:var(--muted);margin-top:8px}
+  .note{font-size:12.5px;border-left:3px solid var(--warn);background:#ffb23e12;
+    padding:8px 12px;border-radius:0 6px 6px 0;color:#e9d7b6;margin-top:12px}
+  .ok{color:var(--ok)} .err{color:var(--err)}
+  .frames{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-top:6px}
+  .frame{border:1px solid var(--line);border-radius:10px;padding:12px;cursor:pointer;background:var(--panel2);
+    transition:.15s}
+  .frame:hover{border-color:var(--accent)}
+  .frame.sel{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+  .frame .nm{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .frame .dim{font-size:11.5px;color:var(--muted);margin-top:3px}
+  .frame input{margin-right:8px;vertical-align:middle}
+  .toggle{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);margin-top:10px}
+  .toggle input{width:auto}
+  .stat{font-size:13px;color:var(--muted);margin-top:14px;white-space:pre-wrap;
+    font-family:ui-monospace,Menlo,Consolas,monospace}
+  .disabled{opacity:.4;pointer-events:none}
+  a{color:var(--accent2)}
+  .muted{color:var(--muted)}
+  .pill{font-size:11px;padding:2px 8px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+  ol.howto{margin:12px 0 0;padding-left:20px;font-size:13px;color:var(--text)}
+  ol.howto li{margin:6px 0}
+  .kbd{display:inline-block;background:var(--panel2);border:1px solid var(--line);border-bottom-width:2px;
+    border-radius:5px;padding:0 6px;font-size:11.5px;font-family:ui-monospace,Menlo,Consolas,monospace;color:var(--text)}
+  .cmd2{background:#0a0c10;border:1px solid var(--line);border-radius:6px;padding:8px 10px;margin:6px 0;
+    font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;color:#cfd6e4;white-space:pre-wrap;word-break:break-all}
+  details{border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin-bottom:8px;background:var(--panel2)}
+  details summary{cursor:pointer;font-size:13.5px;font-weight:600;color:var(--text)}
+  details[open] summary{margin-bottom:8px}
+  details p{font-size:13px;color:var(--muted);margin:6px 0}
+  details code{background:#0a0c10;padding:1px 5px;border-radius:4px;font-size:12px;color:#e6c07b}
+  code{background:#0a0c10;padding:1px 5px;border-radius:4px;font-size:12.5px;color:#e6c07b}
+</style>
+</head>
+<body>
+<header>
+  <h1>Figma → Canva Bridge</h1>
+  <span class="badge">editable .pptx · runs 100% in your browser</span>
+</header>
+<div class="wrap">
+
+  <!-- STEP 1 -->
+  <div class="step">
+    <h2><span class="n">1</span> Point at your Figma file</h2>
+    <div class="row">
+      <div>
+        <label>Figma file link or key</label>
+        <input id="figUrl" type="text" placeholder="https://www.figma.com/design/AbC123.../My-File" />
+      </div>
+      <div>
+        <label>Personal access token <span class="muted">(stays on your machine — only used to build the command below)</span></label>
+        <input id="figTok" type="text" placeholder="figd_xxx..." />
+      </div>
+    </div>
+    <div class="hint"><b>Get a token:</b> <a href="https://www.figma.com/developers/api#access-tokens" target="_blank">figma.com → your avatar → Settings → Security → Personal access tokens → Generate new token</a> (scope: <b>File content → Read-only</b>). Copy it immediately — Figma shows it once. It's never sent anywhere by this page; it only goes into the command below, which you run yourself.</div>
+    <label style="margin-top:16px">Run this once — it saves <code>figma.json</code>:</label>
+    <div class="cmd" id="cmdBox">Fill in the link + token above to generate the command.
+      <button class="secondary" onclick="copyCmd(this)">Copy</button></div>
+    <ol class="howto">
+      <li>Open <b>PowerShell</b>: press <span class="kbd">Win</span>+<span class="kbd">X</span> → <b>Terminal</b> (or search "PowerShell" in Start).</li>
+      <li>Go to this app's folder — paste and press Enter:
+        <div class="cmd2">cd C:\Users\Korisnik\Downloads\Calude</div></li>
+      <li>Paste the copied command (right-click, or <span class="kbd">Ctrl</span>+<span class="kbd">V</span>) and press Enter. Keep it as <b>one line</b>.</li>
+      <li>When the prompt returns with no red error, <code>figma.json</code> is in that folder. Drag it into Step 2.</li>
+    </ol>
+    <div class="note">Why a command instead of a button? Figma's API blocks direct browser calls (CORS), and routing your token through a public proxy would leak it. Running it yourself keeps the token on your machine.</div>
+  </div>
+
+  <!-- STEP 2 -->
+  <div class="step" id="step2">
+    <h2><span class="n">2</span> Drop in the figma.json</h2>
+    <div class="drop" id="drop">Drag <b>figma.json</b> here, or click to choose
+      <input type="file" id="file" accept=".json,application/json" style="display:none" /></div>
+    <div class="hint">It's the file the Step&nbsp;1 command just saved into <code>C:\Users\Korisnik\Downloads\Calude</code>.</div>
+    <div class="stat" id="loadStat"></div>
+  </div>
+
+  <!-- STEP 3 -->
+  <div class="step disabled" id="step3">
+    <h2><span class="n">3</span> Pick frame(s) to convert</h2>
+    <div class="frames" id="frames"></div>
+    <label class="toggle"><input type="checkbox" id="optRaster" />
+      For layers I can't reconstruct cleanly, leave an editable color block (your choice: approximate-editably)</label>
+    <label class="toggle"><input type="checkbox" id="optShrink" checked />
+      Shrink text to fit its box (fixes headlines overflowing after Canva substitutes the font)</label>
+    <label class="toggle"><input type="checkbox" id="optNotes" checked />
+      Add a speaker-note manifest of every layer + any fidelity warnings</label>
+
+    <!-- image fetch — scoped to the selected frame(s) only -->
+    <div id="imgWrap" style="display:none;margin-top:18px">
+      <label>The frame(s) you selected use <b><span id="imgCount">0</span></b> image(s). To embed the real photos (instead of gray blocks), run this command — it writes <code>images.json</code>:</label>
+      <div class="cmd" id="imgCmdBox"><button class="secondary" onclick="copyImgCmd(this)">Copy</button></div>
+      <ol class="howto">
+        <li>In the <b>same PowerShell window</b> (still in the <code>Calude</code> folder), paste this command as <b>one line</b> and press Enter.</li>
+        <li>It prints <code>Wrote images.json with N image(s).</code> in green when done.</li>
+        <li>Drag the new <code>images.json</code> onto the box below.</li>
+      </ol>
+      <div class="drop" id="dropImg" style="margin-top:12px">Then drag <b>images.json</b> here
+        <input type="file" id="fileImg" accept=".json,application/json" style="display:none" /></div>
+      <div class="stat" id="imgStat"></div>
+    </div>
+  </div>
+
+  <!-- STEP 4 -->
+  <div class="step disabled" id="step4">
+    <h2><span class="n">4</span> Build the editable PowerPoint</h2>
+    <button id="build" onclick="build()">Generate editable .pptx</button>
+    <button class="secondary" onclick="window.scrollTo(0,0)">Back to top</button>
+    <div class="stat" id="buildStat"></div>
+    <div class="note">Next: hand the downloaded <code>.pptx</code> to me in chat and I'll import it straight into your Canva account. In Canva it opens as editable text boxes and shapes. Fonts not in Canva will be auto-substituted; gradients/effects/complex vectors are approximated.</div>
+  </div>
+
+  <!-- TROUBLESHOOTING -->
+  <div class="step">
+    <h2><span class="n">?</span> Troubleshooting</h2>
+    <details><summary>The <b>Copy</b> button doesn't seem to work</summary>
+      <p>Browsers block clipboard access on files opened directly (<code>file://</code>). The button now falls back automatically, but if it still fails: click inside the command box, select all the text with <span class="kbd">Ctrl</span>+<span class="kbd">A</span>, then <span class="kbd">Ctrl</span>+<span class="kbd">C</span>.</p></details>
+    <details><summary><code>Access to the path '...\System32\figma.json' is denied</code></summary>
+      <p>PowerShell opened in <code>C:\WINDOWS\System32</code>, which is write-protected. Run <code>cd C:\Users\Korisnik\Downloads\Calude</code> first, then paste the command again. The Figma call itself already worked — only the file write failed.</p></details>
+    <details><summary><code>{"params":["file_key"],"query":["ids"]} are required</code> (400)</summary>
+      <p>The command got split across lines on paste, so it ran before the variables were set. Copy the command again and paste it as a <b>single line</b> (these commands are one line on purpose).</p></details>
+    <details><summary>App says <b>"Loaded 0 embedded images"</b></summary>
+      <p>You likely have a leftover empty <code>images.json</code> from a failed run. Delete it and re-run the image command:</p>
+      <div class="cmd2">Remove-Item images.json -ErrorAction SilentlyContinue</div>
+      <p>The command prints <code>Figma returned N URL(s)…</code> and <code>Wrote images.json with N image(s).</code> so you can see the real count.</p></details>
+    <details><summary>It shows a huge number of images (e.g. 248)</summary>
+      <p>That count is per <b>selection</b>. Select <b>one frame at a time</b> — the image command only fetches photos inside the frames you tick. 60+ in one selection may exceed Canva's 50&nbsp;MB import limit.</p></details>
+    <details><summary><code>403 Forbidden</code> from Figma</summary>
+      <p>The token is wrong, expired, or missing the <b>File content (read)</b> scope. Generate a fresh token and rebuild the command. <code>404</code> instead means the file link/key is wrong.</p></details>
+    <details><summary>Where do the files go?</summary>
+      <p>Both <code>figma.json</code> and <code>images.json</code> are written into whatever folder PowerShell is in — so always <code>cd</code> to <code>C:\Users\Korisnik\Downloads\Calude</code> first. That keeps them next to this app.</p></details>
+  </div>
+
+</div>
+
+<script>
+/* ---------------- helpers ---------------- */
+const $ = s => document.querySelector(s);
+let FIG = null;          // parsed figma file json
+let FRAMES = [];         // {id,name,node,w,h}
+let SELECTED = new Set();
+let IMAGES = {};         // nodeId -> data URI (from images.json)
+let IMG_IDS = [];        // node ids that carry an image fill
+
+function figKeyFromUrl(u){
+  if(!u) return '';
+  const m = u.match(/(?:file|design)\/([A-Za-z0-9]+)/);
+  return m ? m[1] : u.trim();
+}
+function buildCmd(){
+  const key = figKeyFromUrl($('#figUrl').value);
+  const tok = $('#figTok').value.trim();
+  if(!key || !tok){ return null; }
+  // PowerShell (Windows) + curl note. Token is rendered locally only.
+  return `# PowerShell:\n`+
+    `Invoke-RestMethod -Uri "https://api.figma.com/v1/files/${key}" \`\n`+
+    `  -Headers @{ "X-Figma-Token" = "${tok}" } | ConvertTo-Json -Depth 100 | Out-File figma.json -Encoding utf8\n\n`+
+    `# macOS / Linux (curl):\n`+
+    `curl -H "X-Figma-Token: ${tok}" "https://api.figma.com/v1/files/${key}" -o figma.json`;
+}
+/* set the command text of a .cmd box without clobbering its Copy <button> */
+function setCmdText(sel, text){
+  const box = $(sel);
+  let t = null;
+  for(const node of box.childNodes){ if(node.nodeType===3){ t = node; break; } }
+  if(!t){ t = document.createTextNode(''); box.insertBefore(t, box.firstChild); }
+  t.textContent = text;
+}
+function refreshCmd(){
+  const c = buildCmd();
+  setCmdText('#cmdBox', c || 'Fill in the link + token above to generate the command.');
+}
+$('#figUrl').addEventListener('input', refreshCmd);
+$('#figTok').addEventListener('input', refreshCmd);
+/* robust copy: clipboard API where allowed, textarea+execCommand fallback for file:// */
+function copyToClipboard(text, btn){
+  const flash = ok => { if(!btn) return; const o=btn.textContent;
+    btn.textContent = ok?'Copied!':'Press Ctrl+C'; setTimeout(()=>btn.textContent=o, 1400); };
+  const fallback = () => {
+    const ta=document.createElement('textarea'); ta.value=text;
+    ta.style.position='fixed'; ta.style.top='-1000px'; document.body.appendChild(ta);
+    ta.focus(); ta.select();
+    let ok=false; try{ ok=document.execCommand('copy'); }catch(e){}
+    document.body.removeChild(ta); flash(ok);
+  };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(()=>flash(true)).catch(fallback);
+  } else { fallback(); }
+}
+function copyCmd(btn){
+  const c = buildCmd(); if(!c) return;
+  copyToClipboard(c, btn);
+}
+
+/* ---------------- image-fetch command (PowerShell) ---------------- */
+function buildImgCmd(){
+  const key = figKeyFromUrl($('#figUrl').value);
+  const tok = $('#figTok').value.trim();
+  const ids = IMG_IDS.join(',');
+  // SINGLE LINE on purpose — multi-line paste into the PowerShell console
+  // drops variable assignments / backtick continuations and breaks the call.
+  return `$key="${key}"; $tok="${tok}"; $ids="${ids}"; `+
+    `$r=Invoke-RestMethod -Uri "https://api.figma.com/v1/images/$key`+"`"+`?ids=$ids&format=png&scale=2" -Headers @{"X-Figma-Token"=$tok}; `+
+    `if($r.err){ Write-Host "Figma error: $($r.err)" -ForegroundColor Red }; `+
+    `$urls=@($r.images.PSObject.Properties | Where-Object {$_.Value}); `+
+    `Write-Host "Figma returned $($urls.Count) URL(s) of $(($ids -split ',').Count) requested."; `+
+    `$map=@{}; $wc=New-Object System.Net.WebClient; `+
+    `foreach($p in $urls){ try{ $map[$p.Name]="data:image/png;base64,"+[Convert]::ToBase64String($wc.DownloadData($p.Value)) }catch{ Write-Host "Download failed: $($p.Name)" -ForegroundColor Yellow } }; `+
+    `$map|ConvertTo-Json -Compress|Out-File images.json -Encoding utf8; `+
+    `Write-Host "Wrote images.json with $($map.Count) image(s)." -ForegroundColor Green`;
+}
+function copyImgCmd(btn){
+  if(!IMG_IDS.length) return;
+  copyToClipboard(buildImgCmd(), btn);
+}
+
+/* ---------------- load json ---------------- */
+const drop = $('#drop'), fileInput = $('#file');
+drop.onclick = ()=>fileInput.click();
+drop.ondragover = e=>{e.preventDefault();drop.classList.add('hover')};
+drop.ondragleave = ()=>drop.classList.remove('hover');
+drop.ondrop = e=>{e.preventDefault();drop.classList.remove('hover');
+  if(e.dataTransfer.files[0]) readFile(e.dataTransfer.files[0]);};
+fileInput.onchange = e=>{ if(e.target.files[0]) readFile(e.target.files[0]); };
+
+/* second drop zone: images.json */
+const dropImg = $('#dropImg'), fileImg = $('#fileImg');
+dropImg.onclick = ()=>fileImg.click();
+dropImg.ondragover = e=>{e.preventDefault();dropImg.classList.add('hover')};
+dropImg.ondragleave = ()=>dropImg.classList.remove('hover');
+dropImg.ondrop = e=>{e.preventDefault();dropImg.classList.remove('hover');
+  if(e.dataTransfer.files[0]) readImages(e.dataTransfer.files[0]);};
+fileImg.onchange = e=>{ if(e.target.files[0]) readImages(e.target.files[0]); };
+function readImages(f){
+  const r = new FileReader();
+  r.onload = ()=>{
+    try{
+      IMAGES = JSON.parse(r.result);
+      const n = Object.keys(IMAGES).length;
+      $('#imgStat').innerHTML = `<span class="ok">Loaded ${n} embedded image(s) — these will replace the gray placeholders.</span>`;
+    }catch(err){ $('#imgStat').innerHTML = `<span class="err">images.json parse error: ${err.message}</span>`; }
+  };
+  r.readAsText(f);
+}
+
+function readFile(f){
+  const r = new FileReader();
+  r.onload = () => {
+    try{
+      FIG = JSON.parse(r.result);
+      if(!FIG.document) throw new Error("Missing 'document' — is this a Figma file response?");
+      collectFrames();
+      $('#loadStat').innerHTML = `<span class="ok">Loaded "${FIG.name||'file'}" · `+
+        `${FRAMES.length} top-level frame(s) found. Pick the frame(s) you want below.</span>`;
+      renderFrames();
+      $('#step3').classList.remove('disabled');
+      $('#step4').classList.remove('disabled');
+    }catch(err){
+      $('#loadStat').innerHTML = `<span class="err">Could not parse: ${err.message}</span>`;
+    }
+  };
+  r.readAsText(f);
+}
+
+/* collect image-fill node ids ONLY within the currently selected frames,
+   and (re)build the scoped image command */
+function refreshImageScope(){
+  IMG_IDS = [];
+  const seen = new Set();
+  function rec(n){
+    if(!n) return;
+    if(n.fills && n.fills.some(f=>f.type==='IMAGE' && f.visible!==false)){
+      if(!seen.has(n.id)){ seen.add(n.id); IMG_IDS.push(n.id); }
+    }
+    (n.children||[]).forEach(rec);
+  }
+  [...SELECTED].forEach(i => rec(FRAMES[i].node));
+
+  if(IMG_IDS.length){
+    $('#imgCount').textContent = IMG_IDS.length;
+    const haveCreds = figKeyFromUrl($('#figUrl').value) && $('#figTok').value.trim();
+    setCmdText('#imgCmdBox', haveCreds ? buildImgCmd()
+      : 'Re-enter your file link + token in Step 1 to generate this command.');
+    $('#imgWrap').style.display = 'block';
+    if(IMG_IDS.length > 60){
+      $('#imgStat').innerHTML = `<span class="err">${IMG_IDS.length} images in this selection — `+
+        `that may exceed Canva's 50MB import. Consider one frame at a time.</span>`;
+    } else { $('#imgStat').textContent = ''; }
+  } else {
+    $('#imgWrap').style.display = 'none';
+  }
+}
+
+/* Collect top-level frames across all pages (canvas children that are FRAME/COMPONENT) */
+function collectFrames(){
+  FRAMES = []; SELECTED.clear();
+  const pages = (FIG.document.children||[]);
+  for(const pg of pages){
+    for(const n of (pg.children||[])){
+      if(['FRAME','COMPONENT','COMPONENT_SET','INSTANCE','GROUP'].includes(n.type) && n.absoluteBoundingBox){
+        FRAMES.push({id:n.id, name:`${pg.name} / ${n.name}`, node:n,
+          w:n.absoluteBoundingBox.width, h:n.absoluteBoundingBox.height});
+      }
+    }
+  }
+}
+function renderFrames(){
+  const box = $('#frames'); box.innerHTML='';
+  FRAMES.forEach((f,i)=>{
+    const d = document.createElement('div');
+    d.className='frame'; d.dataset.i=i;
+    d.innerHTML = `<label style="cursor:pointer"><input type="checkbox" data-i="${i}">`+
+      `<span class="nm">${f.name}</span></label>`+
+      `<div class="dim">${Math.round(f.w)} × ${Math.round(f.h)} px</div>`;
+    d.querySelector('input').onchange = e=>{
+      const idx=+e.target.dataset.i;
+      e.target.checked ? SELECTED.add(idx) : SELECTED.delete(idx);
+      d.classList.toggle('sel', e.target.checked);
+      refreshImageScope();
+    };
+    box.appendChild(d);
+  });
+}
+
+/* ---------------- color / geometry utils ---------------- */
+const PX2IN = px => px/96;            // 96 CSS px per inch
+const PX2PT = px => px*0.75;          // 96px = 72pt
+function toHex(c){ // c in 0..1
+  const v = Math.max(0,Math.min(255,Math.round(c*255)));
+  return v.toString(16).padStart(2,'0');
+}
+function solidFill(fills){
+  if(!fills) return null;
+  for(const f of fills){
+    if(f.visible===false) continue;
+    if(f.type==='SOLID' && f.color){
+      return { hex:(toHex(f.color.r)+toHex(f.color.g)+toHex(f.color.b)).toUpperCase(),
+               alpha: f.opacity!=null?f.opacity:(f.color.a!=null?f.color.a:1) };
+    }
+    if(f.type && f.type.startsWith('GRADIENT') && f.gradientStops && f.gradientStops.length){
+      // approximate gradient by its first stop (editable solid)
+      const s = f.gradientStops[0].color;
+      return { hex:(toHex(s.r)+toHex(s.g)+toHex(s.b)).toUpperCase(),
+               alpha: s.a!=null?s.a:1, approx:'gradient→solid' };
+    }
+    if(f.type==='IMAGE'){
+      return { hex:'CCCCCC', alpha:1, approx:'image fill (drop images.json to embed)' };
+    }
+  }
+  return null;
+}
+
+/* ---------------- conversion ---------------- */
+let WARN = [];
+function build(){
+  const idxs = [...SELECTED];
+  if(!idxs.length){ $('#buildStat').innerHTML='<span class="err">Pick at least one frame.</span>'; return; }
+  WARN = [];
+  $('#build').disabled = true;
+  $('#buildStat').textContent = 'Building…';
+
+  const pptx = new PptxGenJS();
+  // each frame becomes its own slide, sized to the frame
+  let count = {text:0, shape:0, slide:0};
+  idxs.forEach(i=>{
+    const F = FRAMES[i];
+    const layoutName = 'F'+i;
+    const W = Math.max(1, PX2IN(F.w)), H = Math.max(1, PX2IN(F.h));
+    pptx.defineLayout({ name:layoutName, width:W, height:H });
+    pptx.layout = layoutName;
+    const slide = pptx.addSlide();
+    count.slide++;
+
+    // frame background — image fill becomes a full-bleed photo if we have it
+    const frameHasImage = F.node.fills && F.node.fills.some(f=>f.type==='IMAGE' && f.visible!==false);
+    if(frameHasImage && IMAGES[F.node.id]){
+      slide.background = { color:'FFFFFF' };
+      slide.addImage({ data:IMAGES[F.node.id], x:0, y:0, w:W, h:H, sizing:{type:'cover', w:W, h:H} });
+    } else {
+      const bg = solidFill(F.node.fills) ||
+        (F.node.backgroundColor ? {hex:(toHex(F.node.backgroundColor.r)+toHex(F.node.backgroundColor.g)+toHex(F.node.backgroundColor.b)).toUpperCase()} : null);
+      if(bg) slide.background = { color: bg.hex };
+    }
+
+    const origin = F.node.absoluteBoundingBox;
+    walk(F.node, slide, origin, count, pptx);
+
+    if($('#optNotes').checked){
+      slide.addNotes(`Frame: ${F.name}\nSize: ${Math.round(F.w)}×${Math.round(F.h)}px\n`+
+        `Layers placed: ${count.text} text, ${count.shape} shapes (cumulative)\n`+
+        (WARN.length?`\nFidelity warnings:\n- ${WARN.slice(0,40).join('\n- ')}`:'No fidelity warnings.'));
+    }
+  });
+
+  const fname = (FIG.name||'figma')+'-editable.pptx';
+  pptx.writeFile({ fileName:fname }).then(()=>{
+    $('#build').disabled = false;
+    $('#buildStat').innerHTML = `<span class="ok">Done → ${fname}</span>\n`+
+      `${count.slide} slide(s) · ${count.text} text layers · ${count.shape} shape layers\n`+
+      (WARN.length? `${WARN.length} fidelity note(s) (see speaker notes).` : `No fidelity issues flagged.`)+
+      `\n\nNow drop this .pptx into chat and I'll push it to Canva.`;
+  }).catch(e=>{
+    $('#build').disabled=false;
+    $('#buildStat').innerHTML = `<span class="err">Export failed: ${e.message}</span>`;
+  });
+}
+
+/* recursive walk — children are bottom→top, matching PPTX add order */
+function walk(node, slide, origin, count, pptx){
+  const kids = node.children||[];
+  for(const n of kids){
+    if(n.visible===false) continue;
+    const bb = n.absoluteBoundingBox;
+    if(!bb){ if(n.children) walk(n, slide, origin, count, pptx); continue; }
+    const x = PX2IN(bb.x - origin.x), y = PX2IN(bb.y - origin.y);
+    const w = Math.max(0.01, PX2IN(bb.width)), h = Math.max(0.01, PX2IN(bb.height));
+    const opacity = n.opacity!=null ? n.opacity : 1;
+
+    if(n.type==='TEXT'){
+      placeText(n, slide, {x,y,w,h}, count);
+    } else if(['RECTANGLE','ELLIPSE','LINE','REGULAR_POLYGON','STAR','VECTOR','BOOLEAN_OPERATION','FRAME','GROUP','COMPONENT','INSTANCE','COMPONENT_SET'].includes(n.type)){
+      placeShape(n, slide, {x,y,w,h,opacity}, count, pptx);
+      // containers: recurse for their children too
+      if(['FRAME','GROUP','COMPONENT','INSTANCE','COMPONENT_SET'].includes(n.type) && n.children){
+        walk(n, slide, origin, count, pptx);
+      }
+    } else {
+      if(n.children) walk(n, slide, origin, count, pptx);
+    }
+  }
+}
+
+function placeText(n, slide, box, count){
+  const st = n.style||{};
+  const fill = solidFill(n.fills) || {hex:'000000', alpha:1};
+  const align = {LEFT:'left',CENTER:'center',RIGHT:'right',JUSTIFIED:'justify'}[st.textAlignHorizontal] || 'left';
+  const valign = {TOP:'top',CENTER:'middle',BOTTOM:'bottom'}[st.textAlignVertical] || 'top';
+  const opts = {
+    x:box.x, y:box.y, w:box.w, h:box.h,
+    fontSize: st.fontSize ? +(PX2PT(st.fontSize)).toFixed(1) : 12,
+    color: fill.hex,
+    fontFace: st.fontFamily || 'Arial',
+    bold: (st.fontWeight||400) >= 600,
+    italic: (st.italic===true) || /italic/i.test(st.fontPostScriptName||''),
+    align, valign,
+    margin:0, wrap:true,
+    lineSpacingMultiple: st.lineHeightPercentFontSize ? st.lineHeightPercentFontSize/100 : (st.lineHeightPx && st.fontSize ? st.lineHeightPx/st.fontSize : 1),
+  };
+  if(fill.alpha!=null && fill.alpha<1) opts.transparency = Math.round((1-fill.alpha)*100);
+  // letter spacing
+  if(st.letterSpacing) opts.charSpacing = Math.round(PX2PT(st.letterSpacing));
+  // shrink-to-fit so substituted fonts don't overflow the original box
+  if($('#optShrink') && $('#optShrink').checked) opts.fit = 'shrink';
+  slide.addText(n.characters||'', opts);
+  count.text++;
+  if(st.textCase && st.textCase!=='ORIGINAL') WARN.push(`"${n.name}": textCase ${st.textCase} flattened`);
+}
+
+function placeShape(n, slide, box, count, pptx){
+  // real image fill → embed the actual photo (editable-as-image in Canva)
+  const hasImage = n.fills && n.fills.some(f=>f.type==='IMAGE' && f.visible!==false);
+  if(hasImage){
+    if(IMAGES[n.id]){
+      slide.addImage({ data:IMAGES[n.id], x:box.x, y:box.y, w:box.w, h:box.h,
+        sizing:{ type:'cover', w:box.w, h:box.h } });
+      count.shape++;
+      return;
+    } else {
+      WARN.push(`"${n.name}": image fill — run the image command + drop images.json to embed it (gray placeholder used)`);
+    }
+  }
+  const fill = solidFill(n.fills);
+  const stroke = solidFill(n.strokes);
+  const isLine = n.type==='LINE';
+  const isEllipse = n.type==='ELLIPSE';
+  const complex = ['VECTOR','BOOLEAN_OPERATION','STAR','REGULAR_POLYGON'].includes(n.type);
+  const container = ['FRAME','GROUP','COMPONENT','INSTANCE','COMPONENT_SET'].includes(n.type);
+
+  // containers with no own fill: skip drawing a block (just a positioning group)
+  if(container && !fill) return;
+
+  if(complex && !$('#optRaster').checked && !fill){
+    WARN.push(`"${n.name}" (${n.type}): no solid fill, skipped (enable color-block fallback to keep it)`);
+    return;
+  }
+
+  let shapeType = pptx.ShapeType.rect;
+  if(isEllipse) shapeType = pptx.ShapeType.ellipse;
+  if(isLine) shapeType = pptx.ShapeType.line;
+  if(complex){
+    shapeType = pptx.ShapeType.rect;
+    WARN.push(`"${n.name}" (${n.type}): approximated as editable rectangle`);
+  }
+
+  const opts = { x:box.x, y:box.y, w:box.w, h:box.h };
+  if(fill){
+    opts.fill = { color: fill.hex };
+    if(fill.alpha!=null && fill.alpha<1) opts.fill.transparency = Math.round((1-fill.alpha)*100);
+    if(fill.approx) WARN.push(`"${n.name}": ${fill.approx}`);
+  } else if(!isLine){
+    opts.fill = { type:'none' };
+  }
+  if(stroke){
+    opts.line = { color: stroke.hex, width: n.strokeWeight ? Math.max(0.5, PX2PT(n.strokeWeight)) : 1 };
+  }
+  // corner radius (rect only)
+  if(!isEllipse && !isLine && n.cornerRadius){
+    shapeType = pptx.ShapeType.roundRect;
+    opts.rectRadius = PX2IN(Math.min(n.cornerRadius, Math.min(box.w,box.h)*96/2));
+  }
+  if(box.opacity!=null && box.opacity<1 && opts.fill && opts.fill.transparency==null){
+    opts.fill.transparency = Math.round((1-box.opacity)*100);
+  }
+  // drop shadow / blur effects can't transfer
+  if(n.effects && n.effects.some(e=>e.visible!==false)) WARN.push(`"${n.name}": effects (shadow/blur) not transferred`);
+
+  slide.addShape(shapeType, opts);
+  count.shape++;
+}
+</script>
+</body>
+</html>
